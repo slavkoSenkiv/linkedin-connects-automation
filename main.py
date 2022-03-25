@@ -1,17 +1,21 @@
 # Mar23 - 15
 # Mar24 - 28
+# Mar25 - 1
 # <editor-fold desc="pre code">
 import random
-import re
 from selenium import webdriver
-import pyautogui
-import time
-from selenium.webdriver.common.keys import Keys
-# <editor-fold desc="mac paths">
-path_to_webdriver = '/Users/ysenkiv/Code/access files/chromedriver'
-li_credentials_path = '/Users/ysenkiv/Code/access files/personal/linkedin/linkedin auth.txt'
-screen_xy = [958, -41, 530, -367] # My Dell screen - 1st two = scroll xy |  2d two  = next button xy
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import ElementClickInterceptedException
+from selenium.common.exceptions import NoSuchElementException
 
+import time
+# <editor-fold desc="mac paths">
+# path_to_webdriver = '/Users/ysenkiv/Code/access files/chromedriver' # Mac
+path_to_webdriver = 'C://Users//slavk//root//Code//access files//chromedriver' # Dell
+li_credentials_path = 'C://Users//slavk//root//Code//access files//personal//linkedin/linkedin auth.txt'
 # </editor-fold>
 # <editor-fold desc="urls">
 li_login_url = 'https://www.linkedin.com/uas/login'
@@ -27,8 +31,10 @@ name_xpath = "/html/body/div[6]/div[3]/div/div[2]/div/div[1]/main/div/div/div[4]
 send_note_b_xpath1 = "//*[@class='artdeco-button artdeco-button--2 artdeco-button--primary ember-view ml1']"
 send_note_b_xpath2 = "/html/body/div[3]/div/div/div[3]/button[2]"
 add_note_offer_xpath = "//*[@class='flex-1']"
+dismiss_connect_b_xpath = "//*[@aria-label='Dismiss']"
 # </editor-fold>
 # <editor-fold desc="login">
+
 with open(li_credentials_path) as credentials_file:
     lines = credentials_file.readlines()
     email = lines[0].strip()
@@ -36,21 +42,25 @@ with open(li_credentials_path) as credentials_file:
 
 browser = webdriver.Chrome(executable_path=path_to_webdriver)
 browser.get(li_login_url)
-browser.find_element_by_id('username').send_keys(email)
-browser.find_element_by_id('password').send_keys(password)
-browser.find_element_by_xpath(login_b_xpath).click()
+browser.find_element(by=By.ID, value='username').send_keys(email)
+browser.find_element(by=By.ID, value='password').send_keys(password)
+browser.find_element(by=By.XPATH, value=login_b_xpath).click()
 print('successfully logged in')
 # </editor-fold>
+
 connect_note = "I see you have game dev LiveOps related position, me too! Would you like to connect? " \
                "From time to time I'm posting stuff that I found useful for my role."
 # </editor-fold> # pre code
 
 
 def send_connect(name=''):
-    browser.find_element_by_xpath(add_note_b_xpath).click()
-    browser.find_element_by_name('message').send_keys(f'Hey {name}! {connect_note}')
+    browser.find_element(by=By.XPATH, value=add_note_b_xpath).click()
+    browser.find_element(by=By.NAME, value='message').send_keys(f'Hey {name}! {connect_note}')
     time.sleep(random.uniform(2.1, 3.1))
-    browser.find_element_by_xpath(send_note_b_xpath2).click()
+    try:
+        browser.find_element(by=By.XPATH, value=dismiss_connect_b_xpath).click()
+    except NoSuchElementException:
+        browser.find_element(by=By.XPATH, value=send_note_b_xpath2).click()
 
 
 send_connects = 0
@@ -59,25 +69,31 @@ browser.get(search_url)
 
 while send_connects <= 30:
     print('page', page_num)
-    time.sleep(2)
-    connect_buttons_lst = browser.find_elements_by_xpath(connect_b_xpath)
-    for connect_button in connect_buttons_lst: # sending connects on the page
-        connect_button.click()
+    # connect_buttons_lst = browser.find_elements(by=By.XPATH, value=connect_b_xpath)
 
-        try:
-            person_name = browser.find_elements_by_xpath(add_note_offer_xpath)[0].text.split(' ')[-2]
-            send_connect(person_name)
+    try:
 
-        except IndexError:
-            send_connect()
+        connect_buttons_lst = WebDriverWait(browser, 5).until(EC.presence_of_all_elements_located((By.XPATH, connect_b_xpath)))
+        print('found connect buttons', len(connect_buttons_lst))
+        for connect_button in connect_buttons_lst:
+            connect_button.click()
 
-        send_connects += 1
-        print(f'connects send {send_connects}')
-    time.sleep(random.uniform(2, 3))
-    for x in range(3):
-        pyautogui.click(x=screen_xy[0], y=screen_xy[1])
-        time.sleep(0.5)
-    pyautogui.click(x=screen_xy[2], y=screen_xy[3])
+            try:
+                person_name = browser.find_elements(by=By.XPATH, value=add_note_offer_xpath)[0].text.split(' ')[-2]
+                send_connect(person_name)
+
+            except IndexError:
+                send_connect()
+
+            send_connects += 1
+            print(f'connects send {send_connects}')
+
+    except TimeoutException:
+            print('no connects found')
+    WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.TAG_NAME, "footer")))
+    browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    button = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.XPATH, "//button/span[text()='Next']")))
+    button.click()
     page_num += 1
 
 
