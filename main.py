@@ -8,20 +8,18 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.common.exceptions import NoSuchElementException
-
 import time
 # <editor-fold desc="mac paths">
-# path_to_webdriver = '/Users/ysenkiv/Code/access files/chromedriver' # Mac
 path_to_webdriver = 'C://Users//slavk//root//Code//access files//chromedriver' # Dell
 li_credentials_path = 'C://Users//slavk//root//Code//access files//personal//linkedin/linkedin auth.txt'
 # </editor-fold>
+
 # <editor-fold desc="urls">
 li_login_url = 'https://www.linkedin.com/uas/login'
-# search_url = f'https://www.linkedin.com/search/results/people/?industry=%5B%223131%22%2C%22109%22%5D&keywords=liveops&origin=FACETED_SEARCH&page={page_num}'
 search_url = f'https://www.linkedin.com/search/results/people/?industry=%5B%223131%22%2C%22109%22%5D&keywords=liveops&origin=FACETED_SEARCH&sid=yBZ'
 # </editor-fold>
+
 # <editor-fold desc="xpaths">
 login_b_xpath = '/html/body/div/main/div[2]/div[1]/form/div[3]/button'
 connect_b_xpath = "//button/span[text()='Connect']/.."
@@ -33,13 +31,12 @@ send_note_b_xpath2 = "/html/body/div[3]/div/div/div[3]/button[2]"
 add_note_offer_xpath = "//*[@class='flex-1']"
 dismiss_connect_b_xpath = "//*[@aria-label='Dismiss']"
 # </editor-fold>
-# <editor-fold desc="login">
 
+# <editor-fold desc="login">
 with open(li_credentials_path) as credentials_file:
     lines = credentials_file.readlines()
     email = lines[0].strip()
     password = lines[1].strip()
-
 browser = webdriver.Chrome(executable_path=path_to_webdriver)
 browser.get(li_login_url)
 browser.find_element(by=By.ID, value='username').send_keys(email)
@@ -48,8 +45,14 @@ browser.find_element(by=By.XPATH, value=login_b_xpath).click()
 print('successfully logged in')
 # </editor-fold>
 
+# <editor-fold desc="values">
 connect_note = "I see you have game dev LiveOps related position, me too! Would you like to connect? " \
                "From time to time I'm posting stuff that I found useful for my role."
+
+send_connects = 0
+page_num = 1
+# </editor-fold>
+
 # </editor-fold> # pre code
 
 
@@ -63,14 +66,10 @@ def send_connect(name=''):
         browser.find_element(by=By.XPATH, value=send_note_b_xpath2).click()
 
 
-send_connects = 0
-page_num = 1
 browser.get(search_url)
 
 while send_connects <= 30:
     print('page', page_num)
-    # connect_buttons_lst = browser.find_elements(by=By.XPATH, value=connect_b_xpath)
-
     try:
 
         connect_buttons_lst = WebDriverWait(browser, 5).until(EC.presence_of_all_elements_located((By.XPATH, connect_b_xpath)))
@@ -90,6 +89,7 @@ while send_connects <= 30:
 
     except TimeoutException:
             print('no connects found')
+
     WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.TAG_NAME, "footer")))
     browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     button = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.XPATH, "//button/span[text()='Next']")))
